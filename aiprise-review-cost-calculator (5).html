@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compliance review cost calculator | AiPrise</title>
+<meta name="description" content="Estimate the annual cost of manual business reviews and the cost with automation. Every figure ties to a stated input or assumption.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   AiPrise review cost workpaper
+   Model notes for reviewers:
+   - Every review pays the platform fee, including escalations (A5).
+   - Escalated cases keep full analyst time (C6).
+   - Automated cases keep a human QA pass (A2).
+   - Figures compute unrounded and display rounded.
+   ============================================================ */
+:root{
+  --paper:#F6F8F3;
+  --card:#FDFEFB;
+  --ink:#1B2420;
+  --muted:#5D6B62;
+  --faint:#8A968D;
+  --rule:#DCE3D6;
+  --rule-strong:#C2CDBA;
+  --green:#1E6F4C;
+  --green-deep:#14523A;
+  --green-mid:#3E8A66;
+  --green-tint:#E9F2EB;
+  --red:#9E3B2C;
+  --red-tint:#F5ECE7;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"Public Sans",-apple-system,Segoe UI,sans-serif;
+  --serif:"Spectral",Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  padding:0 20px;
+}
+.wrap{max-width:1080px;margin:0 auto}
+a{color:var(--green-deep)}
+
+/* ---------- reference chips ---------- */
+.ref{
+  display:inline-block;
+  font-family:var(--mono);
+  font-size:10.5px;
+  font-weight:500;
+  letter-spacing:.04em;
+  color:var(--muted);
+  border:1px solid var(--rule-strong);
+  border-radius:3px;
+  padding:1px 5px;
+  background:var(--card);
+  vertical-align:middle;
+  white-space:nowrap;
+}
+.ref.total{color:var(--green-deep);border-color:var(--green-mid);background:var(--green-tint)}
+
+/* ---------- masthead ---------- */
+header{padding:34px 0 22px;border-bottom:3px double var(--rule-strong);margin-bottom:34px}
+.mast-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:22px}
+.wordmark{font-family:var(--serif);font-weight:600;font-size:19px;letter-spacing:.01em}
+.wordmark span{color:var(--green-deep)}
+.wp-id{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.03em;text-align:right}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(30px,4.6vw,44px);line-height:1.12;letter-spacing:-.01em;max-width:19ch}
+.standfirst{margin-top:14px;max-width:64ch;color:var(--muted);font-size:16px}
+.standfirst b{color:var(--ink);font-weight:600}
+
+/* ---------- layout ---------- */
+.top{display:grid;grid-template-columns:2fr 1fr;gap:22px;align-items:start;margin-bottom:30px}
+.entry{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.side{position:sticky;top:22px;display:flex;flex-direction:column;gap:14px}
+.side .hero{padding:20px 20px 16px}
+.side .hero-fig{font-size:clamp(28px,3vw,40px)}
+.side .bars{margin-top:0;padding:16px 18px}
+.side .bar-row{margin-bottom:13px}
+.side .bar-name{font-size:12px}
+.side .bar-amt{font-size:12.5px}
+.side .track{height:16px}
+.side .legend{gap:9px 12px;margin-top:10px;padding-top:10px}
+.side .leg{font-size:11px}
+.side .tiles{grid-template-columns:1fr 1fr;gap:10px;margin-top:0}
+.side .tile{padding:12px 14px}
+.side .tile-label{font-size:11px;margin-bottom:5px}
+.side .tile-fig{font-size:17px}
+.side .tile-sub{font-size:11px}
+.jump{display:block;text-align:center;margin-top:2px;text-decoration:none}
+@media(max-width:1000px){.entry{grid-template-columns:1fr}}
+@media(max-width:940px){.top{grid-template-columns:1fr}.side{position:static}.entry{grid-template-columns:1fr 1fr}}
+@media(max-width:820px){.entry{grid-template-columns:1fr}}
+
+/* ---------- panels ---------- */
+.panel{background:var(--card);border:1px solid var(--rule-strong);border-radius:6px;padding:22px 22px 10px}
+.panel-title{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.panel-title h2{font-family:var(--serif);font-weight:600;font-size:19px}
+.panel-title .hint{font-size:12px;color:var(--faint)}
+.panel-sub{font-size:12.5px;color:var(--muted);padding:10px 0 2px}
+
+/* ---------- controls ---------- */
+.ctl{padding:16px 0 14px;border-bottom:1px solid var(--rule)}
+.ctl:last-child{border-bottom:none}
+.ctl-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.ctl-label{font-size:13px;font-weight:600;letter-spacing:.01em;display:flex;align-items:center;gap:8px}
+.ctl-value{
+  font-family:var(--mono);font-size:15px;font-weight:500;color:var(--ink);
+  background:transparent;border:none;border-bottom:1.5px solid var(--rule-strong);
+  width:118px;text-align:right;padding:2px 2px 3px;border-radius:0;
+}
+.ctl-value:focus{outline:none;border-bottom-color:var(--green)}
+.ctl-note{font-size:12px;color:var(--faint);margin-top:9px;line-height:1.5}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:4px;border-radius:2px;
+  background:var(--rule);cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--ink);border:2.5px solid var(--card);
+  box-shadow:0 0 0 1px var(--rule-strong);
+}
+input[type=range]::-moz-range-thumb{
+  width:12px;height:12px;border-radius:50%;
+  background:var(--ink);border:2.5px solid var(--card);
+  box-shadow:0 0 0 1px var(--rule-strong);
+}
+input[type=range]::-moz-range-track{background:transparent}
+:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:2px}
+
+/* ---------- tier table ---------- */
+.tiers{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px;margin-top:4px}
+.tiers td{padding:7px 6px;border-bottom:1px solid var(--rule);color:var(--muted)}
+.tiers tr:last-child td{border-bottom:none}
+.tiers td:last-child{text-align:right;color:var(--ink)}
+.tiers tr.active td{background:var(--green-tint);color:var(--green-deep);font-weight:500}
+.applied{
+  display:none;font-family:var(--sans);font-size:10px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;
+  color:var(--green-deep);border:1px solid var(--green-mid);
+  border-radius:3px;padding:1px 5px;margin-left:7px;vertical-align:1px;
+}
+.tiers tr.active .applied{display:inline-block}
+.method-note{
+  border-left:3px solid var(--rule-strong);
+  padding:8px 12px;margin:16px 0 12px;
+  font-size:12.5px;color:var(--muted);
+}
+
+/* ---------- results ---------- */
+.hero{background:var(--card);border:1px solid var(--rule-strong);border-radius:6px;padding:26px 26px 22px;position:relative}
+.hero-label{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hero-fig{font-family:var(--mono);font-weight:500;font-size:clamp(38px,5.4vw,52px);color:var(--green-deep);letter-spacing:-.02em;margin:10px 0 2px;font-variant-numeric:tabular-nums}
+.hero-sub{font-size:15px;color:var(--ink)}
+.hero-sub strong{color:var(--green-deep)}
+.hero-micro{font-size:12px;color:var(--faint);margin-top:12px;padding-top:12px;border-top:1px solid var(--rule)}
+
+/* ---------- bars ---------- */
+.bars{background:var(--card);border:1px solid var(--rule-strong);border-radius:6px;padding:22px 26px;margin-top:22px}
+.bar-row{margin-bottom:18px}
+.bar-row:last-of-type{margin-bottom:8px}
+.bar-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;gap:12px}
+.bar-name{font-size:13px;font-weight:600}
+.bar-amt{font-family:var(--mono);font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
+.bar-amt.red{color:var(--red)}
+.bar-amt.green{color:var(--green-deep)}
+.track{height:26px;background:var(--paper);border:1px solid var(--rule);border-radius:3px;overflow:hidden;display:flex}
+.seg{height:100%}
+.seg-manual{background:var(--red)}
+.seg-platform{background:var(--green-deep)}
+.seg-analyst{background:var(--green-mid)}
+@media(prefers-reduced-motion:no-preference){.seg{transition:width .45s ease}}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
+.leg{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.swatch{width:11px;height:11px;border-radius:2px;display:inline-block}
+
+/* ---------- tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:22px}
+@media(max-width:940px){.tiles{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.tiles{grid-template-columns:1fr}}
+.tile{background:var(--card);border:1px solid var(--rule-strong);border-radius:6px;padding:16px 18px}
+.tile-label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px}
+.tile-fig{font-family:var(--mono);font-size:23px;font-weight:500;font-variant-numeric:tabular-nums}
+.tile-fig.green{color:var(--green-deep)}
+.tile-fig.red{color:var(--red)}
+.tile-sub{font-size:12px;color:var(--faint);margin-top:4px}
+
+/* ---------- schedule ---------- */
+.schedule{margin-top:44px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.sec-head h2{font-family:var(--serif);font-weight:600;font-size:24px}
+.sec-head .hint{font-size:12.5px;color:var(--faint)}
+.sec-intro{color:var(--muted);font-size:14px;max-width:70ch;margin-bottom:18px}
+.sched{background:var(--card);border:1px solid var(--rule-strong);border-radius:6px;overflow:hidden}
+.srow{
+  display:grid;grid-template-columns:52px 1fr 170px;gap:14px;align-items:center;
+  padding:12px 18px;border-bottom:1px solid var(--rule);
+  background-image:none;
+}
+.srow:last-child{border-bottom:none}
+.srow .item{font-size:13.5px;font-weight:500}
+.srow .calc{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.5;font-variant-numeric:tabular-nums}
+.srow .res{font-family:var(--mono);font-size:14px;font-weight:500;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.srow.total{background:var(--green-tint);border-top:3px double var(--rule-strong)}
+.srow.total .item{color:var(--green-deep);font-weight:600}
+.srow.total .res{color:var(--green-deep);font-size:16px}
+.sched-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.scol-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:12px 16px;border-bottom:1px solid var(--rule-strong);font-weight:600;font-size:13.5px}
+.scol-head .tag{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--faint)}
+.scol-head.manual{color:var(--red)}
+.scol-head.ai{color:var(--green-deep)}
+.scol .srow{grid-template-columns:46px 1fr auto;gap:10px;padding:12px 14px}
+.scol .srow .res{font-size:13px}
+@media(max-width:720px){.sched-cols{grid-template-columns:1fr}}
+@media(max-width:640px){
+  .srow,.scol .srow{grid-template-columns:44px 1fr;grid-template-rows:auto auto}
+  .srow .res,.scol .srow .res{grid-column:2;text-align:left;margin-top:2px}
+}
+
+/* ---------- outcomes ---------- */
+.outcomes{margin-top:44px}
+.oc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
+@media(max-width:940px){.oc-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.oc-grid{grid-template-columns:1fr}}
+.oc{background:var(--card);border:1px solid var(--rule-strong);border-radius:6px;padding:16px 18px}
+.oc-co{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.oc-fig{font-family:var(--serif);font-weight:600;font-size:17px;line-height:1.3}
+.fine{font-size:11.5px;color:var(--faint);margin-top:12px}
+
+/* ---------- cta ---------- */
+.cta{margin-top:44px;background:var(--card);border:1px solid var(--rule-strong);border-radius:6px;padding:28px;display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+@media(max-width:820px){.cta{grid-template-columns:1fr}}
+.cta h2{font-family:var(--serif);font-weight:600;font-size:23px;margin-bottom:8px}
+.cta p{color:var(--muted);font-size:14px;max-width:48ch}
+.btn{
+  font-family:var(--sans);font-size:13.5px;font-weight:600;
+  border-radius:4px;padding:11px 18px;cursor:pointer;border:1px solid var(--ink);
+}
+.btn-ghost{background:transparent;color:var(--ink)}
+.btn-ghost:hover{background:var(--ink);color:var(--card)}
+.btn-solid{background:var(--green-deep);border-color:var(--green-deep);color:#fff}
+.btn-solid:hover{background:var(--green)}
+.cta-actions{display:flex;flex-direction:column;gap:18px}
+.email-row{display:flex;gap:10px;flex-wrap:wrap}
+.email-row input{
+  flex:1;min-width:200px;font-family:var(--sans);font-size:14px;
+  padding:10px 12px;border:1px solid var(--rule-strong);border-radius:4px;
+  background:var(--paper);color:var(--ink);
+}
+.email-row input:focus{outline:none;border-color:var(--green)}
+.form-note{font-size:11.5px;color:var(--faint)}
+.confirm{font-size:14px;color:var(--green-deep);font-weight:500;padding:10px 0}
+.err{font-size:12px;color:var(--red)}
+
+/* ---------- footer ---------- */
+footer{
+  margin-top:48px;padding:22px 0 40px;border-top:3px double var(--rule-strong);
+  display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  font-size:12px;color:var(--faint);
+}
+footer .col{max-width:56ch;line-height:1.6}
+footer .brand{font-family:var(--mono);white-space:nowrap}
+
+@media print{
+  body{background:#fff;padding:0}
+  .cta,.jump,input[type=range]{display:none}
+  .panel,.hero,.bars,.tile,.sched,.oc{border-color:#bbb;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="mast-row">
+    <div class="wordmark">Ai<span>Prise</span></div>
+    <div class="wp-id">Workpaper WP-01<br>Review cost model, KYB</div>
+  </div>
+  <h1>Compliance review cost calculator</h1>
+  <p class="standfirst">Enter your numbers, adjust the assumptions, and see the annual cost of manual review, the cost with automation, and the difference. <b>Every figure ties out in the schedule below.</b></p>
+</header>
+
+<main>
+
+  <!-- ================= ENTRY + SUMMARY ================= -->
+  <div class="top">
+  <div class="entry">
+    <section class="panel" aria-label="Your inputs">
+      <div class="panel-title"><h2>Your inputs</h2><span class="hint">Drag or type a value</span></div>
+
+      <div class="ctl">
+        <div class="ctl-head">
+          <label class="ctl-label" for="i1"><span class="ref">I1</span> Manual reviews per month</label>
+          <input class="ctl-value" id="i1-val" inputmode="numeric" aria-label="Manual reviews per month, typed value">
+        </div>
+        <input type="range" id="i1" min="50" max="5000" step="25" value="500">
+        <p class="ctl-note">Business reviews an analyst works by hand each month.</p>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head">
+          <label class="ctl-label" for="i2"><span class="ref">I2</span> Minutes per manual review</label>
+          <input class="ctl-value" id="i2-val" inputmode="numeric" aria-label="Minutes per manual review, typed value">
+        </div>
+        <input type="range" id="i2" min="60" max="600" step="10" value="350">
+        <p class="ctl-note">AiPrise benchmark for a typical manual business review is 300 to 400 minutes.</p>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head">
+          <label class="ctl-label" for="i3"><span class="ref">I3</span> Analyst cost per year, fully loaded</label>
+          <input class="ctl-value" id="i3-val" inputmode="numeric" aria-label="Fully loaded analyst cost per year, typed value">
+        </div>
+        <input type="range" id="i3" min="50000" max="150000" step="2500" value="82500">
+        <p class="ctl-note">Salary plus benefits and overhead. Benchmark range is $75,000 to $90,000.</p>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Assumptions">
+      <div class="panel-title"><h2>Assumptions</h2><span class="hint">Adjust if your program differs</span></div>
+      <p class="panel-sub">Each assumption is referenced in the schedule. The defaults are set conservatively.</p>
+
+      <div class="ctl">
+        <div class="ctl-head">
+          <label class="ctl-label" for="a1"><span class="ref">A1</span> Share of reviews automated</label>
+          <input class="ctl-value" id="a1-val" inputmode="numeric" aria-label="Share of reviews automated, typed value">
+        </div>
+        <input type="range" id="a1" min="50" max="95" step="5" value="80">
+        <p class="ctl-note">BlindPay reports 90% of KYC and KYB checks automated in the first month. The default here is set lower. The remainder escalates to an analyst at full review time.</p>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head">
+          <label class="ctl-label" for="a2"><span class="ref">A2</span> Analyst QA minutes per automated review</label>
+          <input class="ctl-value" id="a2-val" inputmode="numeric" aria-label="Analyst QA minutes per automated review, typed value">
+        </div>
+        <input type="range" id="a2" min="0" max="30" step="1" value="15">
+        <p class="ctl-note">Automated outcomes keep a human pass in this model. Set to zero if your program would run straight through.</p>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head">
+          <label class="ctl-label" for="a3"><span class="ref">A3</span> Productive analyst hours per year</label>
+          <input class="ctl-value" id="a3-val" inputmode="numeric" aria-label="Productive analyst hours per year, typed value">
+        </div>
+        <input type="range" id="a3" min="1400" max="2080" step="20" value="1800">
+        <p class="ctl-note">Working hours net of leave, training, and meetings. 1,800 is a common planning figure.</p>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head">
+          <div class="ctl-label"><span class="ref">A4</span> Platform fee per verification</div>
+        </div>
+        <table class="tiers" aria-label="Platform pricing tiers">
+          <tr data-tier="0"><td>Up to 1,000 reviews per month<span class="applied">Applied</span></td><td>$6.00</td></tr>
+          <tr data-tier="1"><td>1,001 to 5,000 per month<span class="applied">Applied</span></td><td>$5.00</td></tr>
+          <tr data-tier="2"><td>Above 5,000 per month<span class="applied">Applied</span></td><td>$4.00</td></tr>
+        </table>
+        <p class="ctl-note">$6 per verification for AI-powered KYB, per AiPrise's illustrative pricing, with tier discounts assumed at scale. The tier for your volume applies to all reviews.</p>
+      </div>
+
+      <div class="method-note"><span class="ref">A5</span>&nbsp; Every review runs on the platform, so the platform fee applies to escalated cases as well as automated ones. This overstates cost rather than understating it.</div>
+    </section>
+  </div>
+
+  <div class="side">
+    <section class="hero" aria-label="Estimated annual saving">
+      <div class="hero-label">Estimated annual saving <span class="ref total">C9</span></div>
+      <div class="hero-fig" id="r-saving">$0</div>
+      <p class="hero-sub">That is a <strong id="r-pct">0%</strong> reduction in total annual review cost.</p>
+      <p class="hero-micro">Escalated cases keep full analyst time and every review pays the platform fee, so this estimate leans conservative. Assumption A1 controls the automation share.</p>
+    </section>
+
+    <section class="bars" aria-label="Annual cost comparison">
+      <div class="bar-row">
+        <div class="bar-head">
+          <span class="bar-name">Current manual process <span class="ref">C4</span></span>
+          <span class="bar-amt red" id="r-manual">$0</span>
+        </div>
+        <div class="track"><div class="seg seg-manual" id="bar-manual" style="width:100%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-head">
+          <span class="bar-name">With AiPrise <span class="ref">C8</span></span>
+          <span class="bar-amt green" id="r-after">$0</span>
+        </div>
+        <div class="track">
+          <div class="seg seg-platform" id="bar-platform" style="width:5%"></div>
+          <div class="seg seg-analyst" id="bar-analyst" style="width:20%"></div>
+        </div>
+      </div>
+      <div class="legend">
+        <span class="leg"><span class="swatch" style="background:var(--red)"></span> Manual review cost</span>
+        <span class="leg"><span class="swatch" style="background:var(--green-deep)"></span> Platform fee <span class="ref">C5</span></span>
+        <span class="leg"><span class="swatch" style="background:var(--green-mid)"></span> Remaining analyst time <span class="ref">C7</span></span>
+      </div>
+    </section>
+
+    <div class="tiles">
+      <div class="tile">
+        <div class="tile-label">Cost per review, current <span class="ref">C10</span></div>
+        <div class="tile-fig red" id="r-cpr-before">$0</div>
+        <div class="tile-sub">Analyst time at your loaded rate</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Cost per review, with AiPrise <span class="ref">C11</span></div>
+        <div class="tile-fig green" id="r-cpr-after">$0</div>
+        <div class="tile-sub">Platform fee plus remaining analyst time</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Analyst hours redirected <span class="ref">C12</span></div>
+        <div class="tile-fig" id="r-hours">0</div>
+        <div class="tile-sub">Per year, moved to genuinely high-risk work</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Capacity freed <span class="ref">C13</span></div>
+        <div class="tile-fig" id="r-fte">0</div>
+        <div class="tile-sub">Full-time analyst equivalents, at A3 hours</div>
+      </div>
+    </div>
+
+    <a class="btn btn-ghost jump" href="#arithmetic">View the detailed arithmetic</a>
+  </div>
+  </div>
+</main>
+
+<!-- ================= SCHEDULE ================= -->
+<section class="schedule" id="arithmetic" aria-label="How the figures tie out">
+  <div class="sec-head">
+    <h2>How the figures tie out</h2>
+    <span class="hint">Live values from your inputs. Figures compute unrounded and display rounded.</span>
+  </div>
+  <p class="sec-intro">The left side prices your current manual process and the right side prices the same volume with AiPrise. The difference is totaled underneath, and every line recomputes when you change a control.</p>
+  <div id="sched"></div>
+</section>
+
+<!-- ================= OUTCOMES ================= -->
+<section class="outcomes" aria-label="Published customer outcomes">
+  <div class="sec-head"><h2>Published customer outcomes</h2></div>
+  <div class="oc-grid">
+    <div class="oc"><div class="oc-co">Bridge, a Stripe company</div><div class="oc-fig">80% faster decisions</div></div>
+    <div class="oc"><div class="oc-co">BlindPay</div><div class="oc-fig">8 minutes to 20 seconds per verification</div></div>
+    <div class="oc"><div class="oc-co">Conduit</div><div class="oc-fig">Onboarding from 3 weeks to 72 hours</div></div>
+    <div class="oc"><div class="oc-co">Grey</div><div class="oc-fig">64% fewer KYC related support contacts</div></div>
+  </div>
+  <p class="fine">Published customer outcomes. Results vary by program configuration.</p>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="cta" aria-label="Share this analysis">
+  <div>
+    <h2>Take this schedule to your team</h2>
+    <p>Automation decisions rarely sit with one person. Copy the full schedule as plain text for your budget conversation, or leave a work email and we will send the analysis with your inputs preserved.</p>
+  </div>
+  <div class="cta-actions">
+    <div><button class="btn btn-ghost" id="copy-btn" type="button">Copy the schedule</button></div>
+    <div id="email-block">
+      <div class="email-row">
+        <input type="email" id="email" placeholder="Work email" aria-label="Work email">
+        <button class="btn btn-solid" id="send-btn" type="button">Email me this analysis</button>
+      </div>
+      <p class="err" id="email-err" hidden>Enter a valid work email address.</p>
+      <p class="form-note" style="margin-top:10px">This form is live and sends the schedule to the address you enter. In production it also posts to HubSpot and carries inputs I1 to I3 with the submission, so lead scoring starts from the buyer's own numbers.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="col">Estimates are generated from your inputs I1 to I3 and assumptions A1 to A5. Benchmark defaults are illustrative figures supplied by AiPrise. This page runs entirely in your browser and stores nothing.</div>
+  <div class="brand">AiPrise · Verification coverage in 200+ countries</div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- state ---------------- */
+  var state = { i1:500, i2:350, i3:82500, a1:80, a2:15, a3:1800 };
+  var bounds = {
+    i1:[1,20000], i2:[10,900], i3:[30000,300000],
+    a1:[0,100], a2:[0,60], a3:[1000,2080]
+  };
+  var TIERS = [
+    { max:1000,     rate:6 },
+    { max:5000,     rate:5 },
+    { max:Infinity, rate:4 }
+  ];
+
+  /* ---------------- formatters ---------------- */
+  function money(n){ return "$" + Math.round(n).toLocaleString("en-US"); }
+  function money2(n){ return "$" + n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function num(n,d){ return n.toLocaleString("en-US",{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); }
+  function pct(n){ return num(n,1) + "%"; }
+
+  /* ---------------- model ----------------
+     C1  analyst hourly rate            = I3 / A3
+     C2  hours per manual review        = I2 / 60
+     C3  monthly analyst hours, current = I1 * C2
+     C4  annual cost, manual process    = C3 * 12 * C1
+     C5  annual platform fee            = I1 * 12 * tier(I1)
+     C6  analyst minutes per review,
+         with AiPrise                   = (1 - A1) * I2 + A1 * A2
+     C7  annual analyst cost, AiPrise   = I1 * (C6/60) * 12 * C1
+     C8  total annual cost, AiPrise     = C5 + C7
+     C9  estimated annual saving        = C4 - C8
+  ---------------------------------------- */
+  function tierIndex(v){ for (var t=0;t<TIERS.length;t++){ if (v<=TIERS[t].max) return t; } return TIERS.length-1; }
+
+  function compute(s){
+    var a1 = s.a1/100;
+    var ti = tierIndex(s.i1);
+    var rate = TIERS[ti].rate;
+    var C1 = s.i3/s.a3;
+    var C2 = s.i2/60;
+    var C3 = s.i1*C2;
+    var C4 = C3*12*C1;
+    var C5 = s.i1*12*rate;
+    var C6 = (1-a1)*s.i2 + a1*s.a2;
+    var afterMonthlyHours = s.i1*C6/60;
+    var C7 = afterMonthlyHours*12*C1;
+    var C8 = C5+C7;
+    var C9 = C4-C8;
+    var annualVol = s.i1*12;
+    return {
+      ti:ti, rate:rate, C1:C1, C2:C2, C3:C3, C4:C4, C5:C5, C6:C6,
+      afterMonthlyHours:afterMonthlyHours, C7:C7, C8:C8, C9:C9,
+      pct: C4>0 ? C9/C4*100 : 0,
+      C10: C4/annualVol,
+      C11: C8/annualVol,
+      C12: (C3-afterMonthlyHours)*12,
+      C13: ((C3-afterMonthlyHours)*12)/s.a3
+    };
+  }
+
+  /* ---------------- schedule rows ---------------- */
+  function rowsManual(s,m){
+    return [
+      ["C1","Analyst hourly rate, used on both sides","I3 / A3 = "+money(s.i3)+" / "+num(s.a3)+" hr", money2(m.C1)],
+      ["C2","Analyst time per manual review","I2 / 60 = "+num(s.i2)+" min / 60", num(m.C2,2)+" hr"],
+      ["C3","Analyst hours per month","I1 x C2 = "+num(s.i1)+" x "+num(m.C2,2)+" hr", num(m.C3)+" hr"],
+      ["C4","Annual cost, manual process","C3 x 12 x C1 = "+num(m.C3)+" hr x 12 x "+money2(m.C1), money(m.C4)],
+      ["C10","Cost per review","C4 / annual volume = "+money(m.C4)+" / "+num(s.i1*12), money2(m.C10)]
+    ];
+  }
+
+  function rowsAi(s,m){
+    var a1pc = num(s.a1), esc = num(100-s.a1);
+    return [
+      ["C6","Analyst minutes per review","(escalated "+esc+"% x "+num(s.i2)+" min) + (automated "+a1pc+"% x "+num(s.a2)+" min QA)", num(m.C6,1)+" min"],
+      ["C7","Annual analyst cost","I1 x C6 / 60 = "+num(m.afterMonthlyHours)+" hr per month, x 12 x C1", money(m.C7)],
+      ["C5","Annual platform fee, tier "+(m.ti+1)+" at "+money2(m.rate),"I1 x 12 x A4 = "+num(s.i1)+" x 12 x "+money2(m.rate), money(m.C5)],
+      ["C8","Total annual cost","C5 + C7 = "+money(m.C5)+" + "+money(m.C7), money(m.C8)],
+      ["C11","Cost per review","C8 / annual volume = "+money(m.C8)+" / "+num(s.i1*12), money2(m.C11)]
+    ];
+  }
+
+  function rowsDiff(s,m){
+    return [
+      ["C9","Estimated annual saving","C4 - C8 = "+money(m.C4)+" - "+money(m.C8), money(m.C9)+"  ("+pct(m.pct)+")"],
+      ["C12","Analyst hours redirected per year","(C3 - "+num(m.afterMonthlyHours)+" hr) x 12", num(m.C12)+" hr"],
+      ["C13","Capacity freed","C12 / A3 = "+num(m.C12)+" hr / "+num(s.a3), num(m.C13,1)+" FTE"]
+    ];
+  }
+
+  function rowHTML(r){
+    var total = r[0]==="C9" ? " total" : "";
+    var chip  = r[0]==="C9" ? "ref total" : "ref";
+    return '<div class="srow'+total+'">'
+         +   '<span class="'+chip+'">'+r[0]+'</span>'
+         +   '<div><div class="item">'+r[1]+'</div><div class="calc">'+r[2]+'</div></div>'
+         +   '<div class="res">'+r[3]+'</div>'
+         + '</div>';
+  }
+
+  function renderSchedule(s,m){
+    var host = document.getElementById("sched");
+    host.innerHTML =
+        '<div class="sched-cols">'
+      +   '<div class="sched scol"><div class="scol-head manual">Current manual process<span class="tag">C1 to C4, C10</span></div>'
+      +     rowsManual(s,m).map(rowHTML).join("")
+      +   '</div>'
+      +   '<div class="sched scol"><div class="scol-head ai">With AiPrise<span class="tag">C5 to C8, C11</span></div>'
+      +     rowsAi(s,m).map(rowHTML).join("")
+      +   '</div>'
+      + '</div>'
+      + '<div class="sched">'
+      +   rowsDiff(s,m).map(rowHTML).join("")
+      + '</div>';
+  }
+
+  /* ---------------- render ---------------- */
+  function el(id){ return document.getElementById(id); }
+
+  function sliderFill(input){
+    var min=+input.min, max=+input.max, v=+input.value;
+    var p = ((v-min)/(max-min))*100;
+    input.style.background = "linear-gradient(to right, var(--ink) "+p+"%, var(--rule) "+p+"%)";
+  }
+
+  function valueText(key){
+    var v = state[key];
+    if (key==="i3") return "$"+num(v);
+    if (key==="a1") return num(v)+"%";
+    if (key==="i1"||key==="a3") return num(v);
+    return num(v);
+  }
+
+  function render(){
+    var m = compute(state);
+
+    el("r-saving").textContent = money(m.C9);
+    el("r-pct").textContent = pct(m.pct);
+    el("r-manual").textContent = money(m.C4);
+    el("r-after").textContent = money(m.C8);
+    el("r-cpr-before").textContent = money2(m.C10);
+    el("r-cpr-after").textContent = money2(m.C11);
+    el("r-hours").textContent = num(m.C12);
+    el("r-fte").textContent = num(m.C13,1);
+
+    var scale = Math.max(m.C4, m.C8) || 1;
+    el("bar-manual").style.width  = (m.C4/scale*100)+"%";
+    el("bar-platform").style.width = (m.C5/scale*100)+"%";
+    el("bar-analyst").style.width  = (m.C7/scale*100)+"%";
+
+    document.querySelectorAll(".tiers tr").forEach(function(tr){
+      tr.classList.toggle("active", +tr.getAttribute("data-tier")===m.ti);
+    });
+
+    renderSchedule(state,m);
+
+    Object.keys(state).forEach(function(k){
+      var r = el(k), t = el(k+"-val");
+      if (document.activeElement !== t) t.value = valueText(k);
+      if (document.activeElement !== r) r.value = state[k];
+      sliderFill(r);
+    });
+  }
+
+  /* ---------------- bindings ---------------- */
+  function clamp(key,v){
+    if (isNaN(v)) return state[key];
+    return Math.min(bounds[key][1], Math.max(bounds[key][0], v));
+  }
+
+  Object.keys(state).forEach(function(k){
+    var r = el(k), t = el(k+"-val");
+    r.addEventListener("input", function(){ state[k] = +r.value; render(); });
+    t.addEventListener("change", commit);
+    t.addEventListener("blur", commit);
+    t.addEventListener("keydown", function(e){ if (e.key==="Enter") t.blur(); });
+    function commit(){
+      var v = parseFloat(String(t.value).replace(/[^0-9.]/g,""));
+      state[k] = clamp(k, v);
+      render();
+    }
+  });
+
+  /* ---------------- copy summary ---------------- */
+  function summaryText(){
+    var s = state, m = compute(state);
+    var L = [];
+    L.push("AiPrise compliance review cost estimate");
+    L.push("Generated from calculator inputs");
+    L.push("");
+    L.push("INPUTS");
+    L.push("I1 Manual reviews per month: " + num(s.i1));
+    L.push("I2 Minutes per manual review: " + num(s.i2));
+    L.push("I3 Analyst cost per year, fully loaded: " + money(s.i3));
+    L.push("");
+    L.push("ASSUMPTIONS");
+    L.push("A1 Share of reviews automated: " + num(s.a1) + "%");
+    L.push("A2 Analyst QA minutes per automated review: " + num(s.a2));
+    L.push("A3 Productive analyst hours per year: " + num(s.a3));
+    L.push("A4 Platform fee, tier " + (m.ti+1) + ": " + money2(m.rate) + " per review");
+    L.push("A5 Every review pays the platform fee, including escalations");
+    L.push("");
+    L.push("RESULTS");
+    L.push("C4 Annual cost, current manual process: " + money(m.C4));
+    L.push("C8 Annual cost with AiPrise: " + money(m.C8) + " (platform " + money(m.C5) + " + analyst " + money(m.C7) + ")");
+    L.push("C9 Estimated annual saving: " + money(m.C9) + " (" + pct(m.pct) + " reduction)");
+    L.push("C10 to C11 Cost per review: " + money2(m.C10) + " now, " + money2(m.C11) + " with AiPrise");
+    L.push("C12 Analyst hours redirected: " + num(m.C12) + " per year (" + num(m.C13,1) + " FTE equivalent)");
+    L.push("");
+    L.push("Method: escalated cases keep full analyst time, automated cases keep a QA pass, and every review pays the platform fee. Figures compute unrounded and display rounded.");
+    return L.join("\n");
+  }
+
+  /* ---------------- email html (verdict card + schedule) ---------------- */
+  function emailHTML(){
+    var s = state, m = compute(state);
+    var scale = Math.max(m.C4, m.C8) || 1;
+    var wManual = Math.max(2, Math.round(m.C4/scale*100));
+    var wFee = Math.max(2, Math.round(m.C5/scale*100));
+    var wAn = Math.max(2, Math.round(m.C7/scale*100));
+    function tileTD(label, val, color){
+      return '<td width="50%" style="padding:4px;"><div style="border:1px solid #DCE3D6;border-radius:4px;padding:10px 12px;background:#FDFEFB;">'
+        + '<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#5D6B62;">'+label+'</div>'
+        + '<div style="font-family:Courier,monospace;font-size:17px;color:'+color+';padding-top:4px;">'+val+'</div>'
+        + '</div></td>';
+    }
+    function row(r, total){
+      var bg = total ? "background:#E9F2EB;" : "";
+      var col = total ? "#14523A" : "#1B2420";
+      return '<tr>'
+        + '<td style="'+bg+'padding:8px 10px;border-bottom:1px solid #DCE3D6;font-family:Courier,monospace;font-size:11px;color:#5D6B62;vertical-align:top;">'+r[0]+'</td>'
+        + '<td style="'+bg+'padding:8px 10px;border-bottom:1px solid #DCE3D6;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:'+col+';">'+r[1]
+        + '<br><span style="font-family:Courier,monospace;font-size:11px;color:#8A968D;">'+r[2]+'</span></td>'
+        + '<td align="right" style="'+bg+'padding:8px 10px;border-bottom:1px solid #DCE3D6;font-family:Courier,monospace;font-size:13px;color:'+col+';white-space:nowrap;">'+r[3]+'</td>'
+        + '</tr>';
+    }
+    function section(title, rows, totalRef){
+      return '<tr><td colspan="3" style="padding:14px 10px 6px;font-family:Georgia,serif;font-size:15px;color:#1B2420;">'+title+'</td></tr>'
+        + rows.map(function(r){ return row(r, r[0]===totalRef); }).join("");
+    }
+    return '<div style="background:#F6F8F3;padding:24px 12px;">'
+      + '<table width="560" align="center" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">'
+      + '<tr><td style="background:#FDFEFB;border:1px solid #C2CDBA;border-radius:6px;padding:22px;">'
+      +   '<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:1px;color:#5D6B62;">ESTIMATED ANNUAL SAVING (C9)</div>'
+      +   '<div style="font-family:Courier,monospace;font-size:34px;color:#14523A;padding:8px 0 2px;">'+money(m.C9)+'</div>'
+      +   '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1B2420;">That is a <b style="color:#14523A;">'+pct(m.pct)+'</b> reduction in total annual review cost.</div>'
+      +   '<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">'
+      +     '<tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1B2420;padding:6px 0 3px;">Current manual process (C4)</td><td align="right" style="font-family:Courier,monospace;font-size:12px;color:#9E3B2C;">'+money(m.C4)+'</td></tr>'
+      +     '<tr><td colspan="2"><table width="100%" cellpadding="0" cellspacing="0"><tr><td width="'+wManual+'%" style="background:#9E3B2C;height:14px;font-size:1px;line-height:1px;">&nbsp;</td><td style="background:#EDEFE8;height:14px;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td></tr>'
+      +     '<tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1B2420;padding:10px 0 3px;">With AiPrise (C8)</td><td align="right" style="font-family:Courier,monospace;font-size:12px;color:#14523A;">'+money(m.C8)+'</td></tr>'
+      +     '<tr><td colspan="2"><table width="100%" cellpadding="0" cellspacing="0"><tr><td width="'+wFee+'%" style="background:#14523A;height:14px;font-size:1px;line-height:1px;">&nbsp;</td><td width="'+wAn+'%" style="background:#3E8A66;height:14px;font-size:1px;line-height:1px;">&nbsp;</td><td style="background:#EDEFE8;height:14px;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td></tr>'
+      +   '</table>'
+      +   '<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">'
+      +     '<tr>'+tileTD("Cost per review, current (C10)", money2(m.C10), "#9E3B2C")+tileTD("Cost per review, with AiPrise (C11)", money2(m.C11), "#14523A")+'</tr>'
+      +     '<tr>'+tileTD("Analyst hours redirected (C12)", num(m.C12)+" hr", "#1B2420")+tileTD("Capacity freed (C13)", num(m.C13,1)+" FTE", "#1B2420")+'</tr>'
+      +   '</table>'
+      + '</td></tr>'
+      + '<tr><td style="height:14px;font-size:1px;line-height:1px;">&nbsp;</td></tr>'
+      + '<tr><td style="background:#FDFEFB;border:1px solid #C2CDBA;border-radius:6px;padding:10px 12px 16px;">'
+      +   '<table width="100%" cellpadding="0" cellspacing="0">'
+      +     section("Current manual process", rowsManual(s,m), "")
+      +     section("With AiPrise", rowsAi(s,m), "")
+      +     section("The difference", rowsDiff(s,m), "C9")
+      +   '</table>'
+      + '</td></tr>'
+      + '<tr><td style="padding:14px 6px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#8A968D;line-height:1.5;">Generated from your calculator inputs. Assumptions: '+num(s.a1)+'% of reviews automated, '+num(s.a2)+' QA minutes per automated review, '+num(s.a3)+' productive hours per year, and a '+money2(m.rate)+' platform fee on every review. Estimates only.</td></tr>'
+      + '</table></div>';
+  }
+
+  el("copy-btn").addEventListener("click", function(){
+    var btn = this, text = summaryText();
+    function done(){ btn.textContent = "Copied"; setTimeout(function(){ btn.textContent = "Copy the schedule"; }, 2000); }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy");
+      document.body.removeChild(ta); done();
+    }
+  });
+
+  /* ---------------- email form ----------------
+     Set WEBHOOK_URL to a live endpoint (n8n webhook) to send for real.
+     Left empty, the form behaves as a demonstration. */
+  var WEBHOOK_URL = "https://kavyapersonalworkflows.app.n8n.cloud/webhook/aiprise-calculator-email";
+
+  el("send-btn").addEventListener("click", function(){
+    var btn = this;
+    var email = el("email").value.trim();
+    var ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+    el("email-err").hidden = ok;
+    if (!ok) return;
+    function confirmSent(){
+      el("email-block").innerHTML =
+        '<p class="confirm">Thanks. The analysis is on its way to ' + email.replace(/</g,"&lt;") + '.</p>' +
+        '<p class="form-note">In production this form also posts to HubSpot and carries inputs I1 to I3 with the submission, so lead scoring starts from the buyer\'s own numbers.</p>';
+    }
+    if (!WEBHOOK_URL){ confirmSent(); return; }
+    btn.disabled = true; btn.textContent = "Sending";
+    var payload = { email: email, inputs: state, schedule: summaryText(), html: emailHTML() };
+    fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).then(function(r){
+      if (r.ok){ confirmSent(); }
+      else { sendFailed(); }
+    }).catch(sendFailed);
+    function sendFailed(){
+      btn.disabled = false; btn.textContent = "Email me this analysis";
+      el("email-err").textContent = "The send did not go through. The copy button above has the same schedule.";
+      el("email-err").hidden = false;
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
